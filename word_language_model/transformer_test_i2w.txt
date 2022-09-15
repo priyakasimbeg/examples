@@ -1,0 +1,10 @@
+WARNING: You have a CUDA device, so you should probably run with --cuda.
+| epoch   1 |   200/ 1864 batches | lr 20.00 | ms/batch 193.82 | loss  9.25 | ppl 10400.94
+| epoch   1 |   400/ 1864 batches | lr 20.00 | ms/batch 177.69 | loss  8.23 | ppl  3760.72
+| epoch   1 |   600/ 1864 batches | lr 20.00 | ms/batch 182.08 | loss  8.16 | ppl  3513.02
+| epoch   1 |   800/ 1864 batches | lr 20.00 | ms/batch 178.28 | loss  8.07 | ppl  3190.26
+| epoch   1 |  1000/ 1864 batches | lr 20.00 | ms/batch 185.10 | loss  8.02 | ppl  3053.11
+| epoch   1 |  1200/ 1864 batches | lr 20.00 | ms/batch 161.22 | loss  8.02 | ppl  3033.44
+| epoch   1 |  1400/ 1864 batches | lr 20.00 | ms/batch 162.51 | loss  7.93 | ppl  2772.45
+| epoch   1 |  1600/ 1864 batches | lr 20.00 | ms/batch 209.21 | loss  7.98 | ppl  2917.66
+| epoch   1 |  1800/ 1864 batches | lr 20.00 | ms/batch 164.64 | loss  7.82 | ppl  2502.14
