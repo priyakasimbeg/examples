@@ -20,3 +20,6 @@ docs/venv
 
 # development
 .vscode
+
+# results files
+output*.txt
