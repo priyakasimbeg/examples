@@ -211,7 +211,7 @@ def train():
             cur_loss = total_loss / args.log_interval
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
-                    'loss {:5.2f} | ppl {:8.2f}'.format(
+                    'loss {:10.5f} | ppl {:8.5f}'.format(
                 epoch, i, len(train_data), lr,
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
@@ -239,8 +239,8 @@ try:
         train()
         val_loss = evaluate(val_data)
         print('-' * 89)
-        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
+        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:10.5f} | '
+                'valid ppl {:8.5f}'.format(epoch, (time.time() - epoch_start_time),
                                            val_loss, math.exp(val_loss)))
         print('-' * 89)
         # Save the model if the validation loss is the best we've seen so far.
@@ -267,7 +267,7 @@ with open(args.save, 'rb') as f:
 # Run on test data.
 test_loss = evaluate(test_data)
 print('=' * 89)
-print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
+print('| End of training | test loss {:10.5f} | test ppl {:8.5f}'.format(
     test_loss, math.exp(test_loss)))
 print('=' * 89)
 
