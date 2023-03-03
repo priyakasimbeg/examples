@@ -6,32 +6,34 @@ import os
 import torch
 import torch.nn as nn
 import torch.onnx
+from torch.utils import tensorboard
+from torch.optim import Adam
 
 import data
 import model
 
-parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM/GRU/Transformer Language Model')
-parser.add_argument('--data', type=str, default='./data/wikitext-2',
+parser = argparse.ArgumentParser(description='PyTorch Wikitext-103 RNN/LSTM/GRU/Transformer Language Model')
+parser.add_argument('--data', type=str, default='./data/wikitext-103',
                     help='location of the data corpus')
 parser.add_argument('--model', type=str, default='LSTM',
                     help='type of network (RNN_TANH, RNN_RELU, LSTM, GRU, Transformer)')
-parser.add_argument('--emsize', type=int, default=200,
+parser.add_argument('--emsize', type=int, default=320,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=200,
+parser.add_argument('--nhid', type=int, default=1024,
                     help='number of hidden units per layer')
-parser.add_argument('--nlayers', type=int, default=2,
+parser.add_argument('--nlayers', type=int, default=3,
                     help='number of layers')
-parser.add_argument('--lr', type=float, default=20,
+parser.add_argument('--lr', type=float, default=1e-3,
                     help='initial learning rate')
 parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clipping')
-parser.add_argument('--epochs', type=int, default=40,
+parser.add_argument('--epochs', type=int, default=500,
                     help='upper epoch limit')
-parser.add_argument('--batch_size', type=int, default=20, metavar='N',
+parser.add_argument('--batch_size', type=int, default=512, metavar='N',
                     help='batch size')
-parser.add_argument('--bptt', type=int, default=35,
+parser.add_argument('--bptt', type=int, default=96,
                     help='sequence length')
-parser.add_argument('--dropout', type=float, default=0.2,
+parser.add_argument('--dropout', type=float, default=0.0,
                     help='dropout applied to layers (0 = no dropout)')
 parser.add_argument('--tied', action='store_true',
                     help='tie the word embedding and softmax weights')
@@ -41,8 +43,9 @@ parser.add_argument('--cuda', action='store_true', default=False,
                     help='use CUDA')
 parser.add_argument('--mps', action='store_true', default=False,
                         help='enables macOS GPU training')
-parser.add_argument('--log-interval', type=int, default=200, metavar='N',
+parser.add_argument('--log-interval', type=int, default=1000, metavar='N',
                     help='report interval')
+parser.add_argument('--logdir', type=str, default='', help='log dir to store tensorboard metrics' )
 parser.add_argument('--save', type=str, default='model.pt',
                     help='path to save the final model')
 parser.add_argument('--onnx-export', type=str, default='',
@@ -52,6 +55,12 @@ parser.add_argument('--nhead', type=int, default=2,
 parser.add_argument('--dry-run', action='store_true',
                     help='verify the code and the model')
 args = parser.parse_args()
+
+# Set up log dirs and logging
+if args.logdir:
+    os.makedirs(args.logdir)
+
+writer = tensorboard.SummaryWriter(args.logdir)
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
@@ -163,6 +172,8 @@ def evaluate(data_source):
             total_loss += len(data) * criterion(output, targets).item()
     return total_loss / (len(data_source) - 1)
 
+train_step = 0
+optmizer = Adam(model.parameters(), lr=args.lr)
 
 def train():
     # Turn on training mode which enables dropout.
@@ -174,6 +185,7 @@ def train():
         hidden = model.init_hidden(args.batch_size)
     for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
         data, targets = get_batch(train_data, i)
+        train_step = train_step + 1
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         model.zero_grad()
@@ -188,12 +200,14 @@ def train():
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
-        for p in model.parameters():
-            p.data.add_(p.grad, alpha=-lr)
+        # for p in model.parameters():
+        #     p.data.add_(p.grad, alpha=-lr)
+        # use ADAM instead of naive update above
+        optimizer.step()
 
         total_loss += loss.item()
 
-        if batch % args.log_interval == 0 and batch > 0:
+        if train_step % args.log_interval == 0 and batch > 0:
             cur_loss = total_loss / args.log_interval
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
@@ -202,6 +216,12 @@ def train():
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
             start_time = time.time()
+            # also calculate validation metrics
+            val_loss = evaluate(val_data)
+            summary.add_scalar("Train/loss", curr_loss, train_step)
+            summary.add_scalar("Train/perplexity", math.exp(cur_loss), train_step)
+            summary.add_scalar("Valid/loss": val_loss, train_step)
+            summary.add_scalar("Valid/perplexity": val_loss, train_step)
         if args.dry_run:
             break
 
