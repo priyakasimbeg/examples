@@ -215,10 +215,10 @@ def train(optimizer, train_step=0):
             start_time = time.time()
             # also calculate validation metrics
             val_loss = evaluate(val_data)
-            summary.add_scalar("Train/loss", curr_loss, train_step)
-            summary.add_scalar("Train/perplexity", math.exp(cur_loss), train_step)
-            summary.add_scalar("Valid/loss", val_loss, train_step)
-            summary.add_scalar("Valid/perplexity", math.exp(val_loss), train_step)
+            writer.add_scalar("Train/loss", cur_loss, train_step)
+            writer.add_scalar("Train/perplexity", math.exp(cur_loss), train_step)
+            writer.add_scalar("Valid/loss", val_loss, train_step)
+            writer.add_scalar("Valid/perplexity", math.exp(val_loss), train_step)
         if args.dry_run:
             break
     return train_step, optimizer
