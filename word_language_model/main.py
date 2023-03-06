@@ -239,10 +239,11 @@ best_val_loss = None
 # At any point you can hit Ctrl + C to break out of training early.
 try:
     train_step=0
+    optimizer=torch.optim.Adam(model.parameters(), lr=1e-3)
     
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
-        train_step, optimizer = train(train_step=train_step, optimizer=torch.optim.Adam(lr=0.0001))
+        train_step, optimizer = train(train_step=train_step, optimizer=optimizer)
         val_loss = evaluate(val_data)
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
