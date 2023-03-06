@@ -19,7 +19,7 @@ parser.add_argument('--model', type=str, default='LSTM',
                     help='type of network (RNN_TANH, RNN_RELU, LSTM, GRU, Transformer)')
 parser.add_argument('--emsize', type=int, default=320,
                     help='size of word embeddings')
-parser.add_argument('--nhid', type=int, default=1024,
+parser.add_argument('--nhid', type=int, default=1028,
                     help='number of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=3,
                     help='number of layers')
@@ -29,7 +29,7 @@ parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clipping')
 parser.add_argument('--epochs', type=int, default=500,
                     help='upper epoch limit')
-parser.add_argument('--batch_size', type=int, default=512, metavar='N',
+parser.add_argument('--batch_size', type=int, default=128, metavar='N',
                     help='batch size')
 parser.add_argument('--bptt', type=int, default=96,
                     help='sequence length')
@@ -106,7 +106,7 @@ def batchify(data, bsz):
     data = data.view(bsz, -1).t().contiguous()
     return data.to(device)
 
-eval_batch_size = 10
+eval_batch_size = args.batch_size
 train_data = batchify(corpus.train, args.batch_size)
 val_data = batchify(corpus.valid, eval_batch_size)
 test_data = batchify(corpus.test, eval_batch_size)
@@ -172,10 +172,7 @@ def evaluate(data_source):
             total_loss += len(data) * criterion(output, targets).item()
     return total_loss / (len(data_source) - 1)
 
-train_step = 0
-optmizer = Adam(model.parameters(), lr=args.lr)
-
-def train():
+def train(optimizer, train_step=0):
     # Turn on training mode which enables dropout.
     model.train()
     total_loss = 0.
@@ -220,10 +217,11 @@ def train():
             val_loss = evaluate(val_data)
             summary.add_scalar("Train/loss", curr_loss, train_step)
             summary.add_scalar("Train/perplexity", math.exp(cur_loss), train_step)
-            summary.add_scalar("Valid/loss": val_loss, train_step)
-            summary.add_scalar("Valid/perplexity": val_loss, train_step)
+            summary.add_scalar("Valid/loss", val_loss, train_step)
+            summary.add_scalar("Valid/perplexity", math.exp(val_loss), train_step)
         if args.dry_run:
             break
+    return train_step, optimizer
 
 
 def export_onnx(path, batch_size, seq_len):
@@ -240,9 +238,11 @@ best_val_loss = None
 
 # At any point you can hit Ctrl + C to break out of training early.
 try:
+    train_step=0
+    
     for epoch in range(1, args.epochs+1):
         epoch_start_time = time.time()
-        train()
+        train_step, optimizer = train(train_step=train_step, optimizer=torch.optim.Adam(lr=0.0001))
         val_loss = evaluate(val_data)
         print('-' * 89)
         print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
